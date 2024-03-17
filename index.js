@@ -1,9 +1,34 @@
 import puppeteer from 'puppeteer';
 import { parseXml } from './urlsDb.js';
+import xlsx from 'xlsx';
+import fs from 'fs';
 
 async function scrapeApteka911() {
     const urls = await parseXml();
     const browser = await puppeteer.launch();
+
+    const filePath = 'products.xlsx';
+    let workbook;
+
+    try {
+        workbook = xlsx.readFile(filePath);
+    } catch (error) {
+        workbook = xlsx.utils.book_new();
+    }
+
+    let productsWorksheet = workbook.Sheets['Products'];
+    if (!productsWorksheet) {
+        productsWorksheet = xlsx.utils.aoa_to_sheet([['Name', 'Price']]);
+        xlsx.utils.book_append_sheet(workbook, productsWorksheet, 'Products');
+    }
+
+    const addProductToWorksheet = (worksheet, product) => {
+        const lastRowIndex = worksheet['!ref'] ? xlsx.utils.decode_range(worksheet['!ref']).e.r : 0;
+        xlsx.utils.sheet_add_json(worksheet, [product], { header: ["Name", "Price"], skipHeader: true, origin: lastRowIndex + 1 });
+    };
+
+    // Создаем Set для отслеживания уже добавленных названий товаров
+    const addedProducts = new Set();
 
     for (let i = 0; i < urls.length; i++) {
         const url = urls[i];
@@ -25,9 +50,17 @@ async function scrapeApteka911() {
             return { name, price };
         });
 
-        console.log(productData);
+        // Проверяем, не добавлено ли уже такое название товара
+        if (!addedProducts.has(productData.name)) {
+            addProductToWorksheet(productsWorksheet, productData);
+            addedProducts.add(productData.name);
+            console.log('Data from', url, 'has been added to products.xlsx');
+        }
 
         await page.close();
+
+        // Записываем результаты в файл XLSX
+        xlsx.writeFile(workbook, filePath);
 
         // Пауза между запросами
         if (i < urls.length - 1) {

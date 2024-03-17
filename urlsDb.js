@@ -20,10 +20,19 @@ export const parseXml = async () => {
                 resolve(res);
             });
         });
-        const urls = result.urlset.url.map(url => url.loc[0]);
-        return urls;
+        let urls = result.urlset.url.map(url => url.loc[0]);
+        const shopUrls = {};
+        urls.forEach(url => {
+            const shopIndex = url.indexOf('/shop/');
+            if (shopIndex !== -1) {
+                const shopUrl = url.substring(shopIndex + 6); // +6 to skip '/shop/'
+                shopUrls[shopUrl] = url;
+            }
+        });
+        return Object.values(shopUrls);
     } catch (error) {
         console.error('Error parsing XML:', error);
+        throw error;
     }
 };
 
