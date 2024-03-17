@@ -3,7 +3,7 @@ const puppeteer = require('puppeteer');
 async function scrapeApteka911() {
     const browser = await puppeteer.launch();
     const page = await browser.newPage();
-    await page.goto('https://apteka911.ua/ua/shop/fitochay-islandskiy-moh-30-g-solution-pharm-p262912');
+    await page.goto('https://apteka911.ua/ua/shop/roksera-tabl-v-o-5mg-90-p29739');
 
     // Ждем, пока загрузится содержимое страницы
     await page.waitForSelector('#wrp-content > div.product-head-instr.tl > h1');
