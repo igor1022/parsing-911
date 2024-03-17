@@ -1,9 +1,9 @@
-const { parseString } = require('xml2js');
-const fs = require('fs').promises; 
+import { parseString } from 'xml2js';
+import { readFile } from 'fs/promises'; 
 
 const readXmlFile = async () => {
     try {
-        const file = await fs.readFile('./sitemap.xml', 'utf8');
+        const file = await readFile('./sitemap.xml', 'utf8');
         return file;
     } catch (error) {
         console.error('Error reading file:', error);
@@ -11,7 +11,7 @@ const readXmlFile = async () => {
     }
 };
 
-const parseXml = async () => {
+export const parseXml = async () => {
     try {
         const xmlData = await readXmlFile();
         const result = await new Promise((resolve, reject) => {
@@ -27,4 +27,3 @@ const parseXml = async () => {
     }
 };
 
-export default parseXml;
