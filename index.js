@@ -18,15 +18,20 @@ async function scrapeApteka911() {
 
     let productsWorksheet = workbook.Sheets['Products'];
     if (!productsWorksheet) {
-        productsWorksheet = xlsx.utils.aoa_to_sheet([['Name', 'Price']]);
+        productsWorksheet = xlsx.utils.aoa_to_sheet([['Ean', 'Name', 'Price']]);
         xlsx.utils.book_append_sheet(workbook, productsWorksheet, 'Products');
     }
 
     const addProductToWorksheet = (worksheet, product) => {
         const lastRowIndex = worksheet['!ref'] ? xlsx.utils.decode_range(worksheet['!ref']).e.r : 0;
-        xlsx.utils.sheet_add_json(worksheet, [product], { header: ["Name", "Price"], skipHeader: true, origin: lastRowIndex + 1 });
+        const nextRowIndex = lastRowIndex + 1;
+    
+        // Создаем массив данных
+        const data = [[product.ean, product.name, product.price]];
+    
+        // Добавляем данные в лист
+        xlsx.utils.sheet_add_aoa(worksheet, data, { origin: { r: nextRowIndex, c: 0 } });
     };
-
     // Создаем Set для отслеживания уже добавленных названий товаров
     const addedProducts = new Set();
 
@@ -38,16 +43,28 @@ async function scrapeApteka911() {
         // Ждем, пока загрузится содержимое страницы
         await page.waitForSelector('#wrp-content > div.product-head-instr.tl > h1');
         await page.waitForSelector('#main > div.shopping-conteiner > div.b__shopping > div.b-product__shopping.instruction.full > div:nth-child(1) > div > div > div');
+        await page.waitForSelector('#wrp-content > div.product-head-instr.tl > span');
 
         // Извлекаем информацию о товарах
         const productData = await page.evaluate(() => {
             const nameElement = document.querySelector('#wrp-content > div.product-head-instr.tl > h1');
             const name = nameElement.textContent.trim();
 
-            const priceElement = document.querySelector('#main > div.shopping-conteiner > div.b__shopping > div.b-product__shopping.instruction.full > div:nth-child(1) > div > div > div');
-            const price = priceElement.textContent.trim();
+            const eanElement = document.querySelector('#wrp-content > div.product-head-instr.tl > span');
+            let eanText = eanElement.textContent.trim();
 
-            return { name, price };
+            // Извлекаем числовое значение штрихкода из текста
+            const eanMatch = eanText.match(/(\d+)/);
+            const ean = eanMatch ? parseInt(eanMatch[0]) : null;
+        
+            const priceElement = document.querySelector('#main > div.shopping-conteiner > div.b__shopping > div.b-product__shopping.instruction.full > div:nth-child(1) > div > div > div');
+            let priceText = priceElement.textContent.trim();
+        
+            // Извлекаем числовое значение цены из текста
+            const priceMatch = priceText.match(/(\d+(\.\d+)?)/);
+            const price = priceMatch ? parseFloat(priceMatch[0]) : null;
+        
+            return { ean, name, price };
         });
 
         // Проверяем, не добавлено ли уже такое название товара
