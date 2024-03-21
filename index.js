@@ -65,16 +65,23 @@ async function scrapeApteka911() {
         const page = await browser.newPage();
         try {
             await page.goto(url, { timeout: 60000 });
+
+            try {
+                await page.waitForSelector('#wrp-content > div.product-head-instr.tl > h1', { timeout: 30000 });
+                await page.waitForSelector('#main > div.shopping-conteiner > div.b__shopping > div.b-product__shopping.instruction.full > div:nth-child(1) > div > div > div', { timeout: 30000 });
+                await page.waitForSelector('#wrp-content > div.product-head-instr.tl > span', { timeout: 30000 });
+            } catch (error) {
+                console.error(`Error waiting for selector on ${url}:`, error);
+                await sendTelegramMessage(`Не удалось дождаться селектора на странице ${url}: ${error.message}`);
+                await page.close();
+                continue;
+            }
         } catch (error) {
             console.error(`Error navigating to ${url}:`, error);
             await sendTelegramMessage(`Ошибка при загрузке страницы ${url}: ${error.message}`);
             await page.close();
             continue;
         }
-
-        await page.waitForSelector('#wrp-content > div.product-head-instr.tl > h1');
-        await page.waitForSelector('#main > div.shopping-conteiner > div.b__shopping > div.b-product__shopping.instruction.full > div:nth-child(1) > div > div > div');
-        await page.waitForSelector('#wrp-content > div.product-head-instr.tl > span');
 
         const productData = await page.evaluate(() => {
             const nameElement = document.querySelector('#wrp-content > div.product-head-instr.tl > h1');
