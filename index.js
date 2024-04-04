@@ -1,8 +1,16 @@
 import puppeteer from 'puppeteer';
-import { parseXml } from './urlsDb.js';
+import { readXmlFile } from './file.js';
 import xlsx from 'xlsx';
 import TelegramBot from 'node-telegram-bot-api';
 import fs from 'fs';
+
+function logMemoryUsage() {
+    const used = process.memoryUsage();
+    console.log(`Memory usage: 
+        heapTotal: ${Math.round(used.heapTotal / 1024 / 1024 * 100) / 100} MB,
+        heapUsed: ${Math.round(used.heapUsed / 1024 / 1024 * 100) / 100} MB,
+        external: ${Math.round(used.external / 1024 / 1024 * 100) / 100} MB`);
+}
 
 async function scrapeApteka911() {
     const botToken = '7083999454:AAGse7TlBAyrvQ63sv-uDVZlBlb9Slo7pS8';
@@ -17,10 +25,12 @@ async function scrapeApteka911() {
             console.error('Error sending message to Telegram channel:', error);
         }
     }
+    logMemoryUsage();
 
-    const urls = await parseXml();
+    const urls = await readXmlFile('./sitemap(short).xml');
     const browser = await puppeteer.launch();
 
+    logMemoryUsage();
     // Отправляем сообщение о начале парсинга и указываем количество ссылок
     sendTelegramMessage(`Парсинг начат. Всего ссылок для обработки: ${urls.length}`);
 
@@ -61,6 +71,7 @@ async function scrapeApteka911() {
     const addedProducts = new Set();
 
     for (let i = count; i < urls.length; i++) {
+        logMemoryUsage();
         const url = urls[i];
         const page = await browser.newPage();
         try {
@@ -124,3 +135,4 @@ async function scrapeApteka911() {
 }
 
 scrapeApteka911();
+
